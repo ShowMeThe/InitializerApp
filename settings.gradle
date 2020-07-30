@@ -1,0 +1,3 @@
+include ':launch'
+include ':app'
+rootProject.name = "InitializerApp"
