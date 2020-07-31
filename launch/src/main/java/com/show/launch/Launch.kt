@@ -20,7 +20,7 @@ class Launch private constructor() {
     }
 
     private lateinit var applicationCtx: Context
-    private val initializerSet = HashMap<Class<*>,Any?>()
+    private val initializedSet = HashMap<Class<*>,Any?>()
 
     fun doInit(){
         try {
@@ -36,7 +36,7 @@ class Launch private constructor() {
                     if(dataValue == initializerName){
                         val clazz = Class.forName(key)
                         if(Initializer::class.java.isAssignableFrom(clazz)){
-                            doInitClazz(clazz as Class<Initializer<*>>,set)
+                            doInitClazz(clazz as Class<out Initializer<*>>,set)
                         }
                     }
                 }
@@ -49,26 +49,49 @@ class Launch private constructor() {
     }
 
     @Synchronized
-    private fun doInitClazz(clazz:Class<Initializer<*>>,set:HashSet<Class<*>>){
-        if(!initializerSet.contains(clazz)){
-            /**
-             * not contain
-             */
-            set.add(clazz)
+    private fun doInitClazz(clazz:Class<out Initializer<*>>,initializing:HashSet<Class<*>>){
+        try {
+            try {
+                if(!initializedSet.contains(clazz)){
+                    /**
+                     * not contain
+                     */
+                    var result: Any?
+                    val instant =  clazz.getDeclaredConstructor().newInstance()
+                    if(instant.dependencies()!=null){
+                        val dependencies = instant.dependencies()!!
+                        if(dependencies.isNotEmpty()){
+                            for(depClazz in dependencies){
+                                if (!initializedSet.containsKey(depClazz)) {
+                                    doInitClazz(depClazz, initializing)
+                                }
+                            }
+                        }
+                    }
 
-            var result : Any? = null
-            val instant = clazz.getDeclaredConstructor().newInstance()
-            if(instant.onCreateSync() != null){
-                  result = instant.onCreateSync()
-                 initializerSet[clazz] = result
-                 set.remove(clazz)
-            }else{
-                GlobalScope.launch(Dispatchers.IO) {
-                    result = instant.onCreateAsync()
-                    initializerSet[clazz] = result
-                    set.remove(clazz)
+                    if(initializing.contains(clazz)){
+                        return
+                    }
+                    initializing.add(clazz)
+                    if(instant.initializerType() == InitializerType.Sync){
+                        result = instant.onCreateSync(applicationCtx,applicationCtx.isMainProcess())
+                        Log.e("2222222222","onCreateSync ${instant}  ${result}")
+                        initializedSet[clazz] = result
+                        initializing.remove(clazz)
+                    }else{
+                        GlobalScope.launch(Dispatchers.IO) {
+                            initializing.add(clazz)
+                            result = instant.onCreateAsync(applicationCtx,applicationCtx.isMainProcess())
+                            initializedSet[clazz] = result
+                            initializing.remove(clazz)
+                        }
+                    }
                 }
+            }catch (e:java.lang.Exception){
+                e.printStackTrace()
             }
+        }finally {
+
         }
     }
 

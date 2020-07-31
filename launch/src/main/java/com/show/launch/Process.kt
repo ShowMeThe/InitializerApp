@@ -16,6 +16,10 @@ fun Context.isMainProcess(main:()->Unit) {
     }
 }
 
+fun Context.isMainProcess():Boolean {
+   return isPidOfProcessName(this, getPid(), getMainProcessName(this))
+}
+
 /**
  * 判断该进程ID是否属于该进程名
  *
