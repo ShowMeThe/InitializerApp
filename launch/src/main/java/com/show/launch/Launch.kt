@@ -5,22 +5,23 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.content.pm.PackageManager.GET_META_DATA
 import android.util.Log
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
+import java.util.concurrent.Executors
 
-class Launch private constructor() {
 
-    companion object {
-        private val instant by lazy { Launch() }
-        fun launch(context: Context): Launch = instant.apply {
-            applicationCtx = context.applicationContext
+class Launch{
+
+    companion object{
+        val instant by lazy { Launch() }
+        fun attach(context: Context) = instant.apply {
+            applicationCtx = context
         }
-
     }
 
+    private val threadPool = Executors.newFixedThreadPool(2)
     private lateinit var applicationCtx: Context
-    private val initializedSet = HashMap<Class<*>,Any?>()
+    private val initialized = HashMap<Class<*>,Any?>()
+
 
     fun doInit(){
         try {
@@ -49,40 +50,60 @@ class Launch private constructor() {
     }
 
     @Synchronized
-    private fun doInitClazz(clazz:Class<out Initializer<*>>,initializing:HashSet<Class<*>>){
+    private fun doInitClazz(clazz:Class<out Initializer<*>>,initializing:HashSet<Class<*>>) {
         try {
             try {
-                if(!initializedSet.contains(clazz)){
+                if(!initialized.contains(clazz)){
                     /**
                      * not contain
                      */
                     var result: Any?
-                    val instant =  clazz.getDeclaredConstructor().newInstance()
-                    if(instant.dependencies()!=null){
-                        val dependencies = instant.dependencies()!!
-                        if(dependencies.isNotEmpty()){
-                            for(depClazz in dependencies){
-                                if (!initializedSet.containsKey(depClazz)) {
-                                    doInitClazz(depClazz, initializing)
-                                }
-                            }
-                        }
-                    }
-
+                    val instant =  newInstant(clazz)
                     if(initializing.contains(clazz)){
                         return
                     }
                     initializing.add(clazz)
                     if(instant.initializerType() == InitializerType.Sync){
-                        result = instant.onCreateSync(applicationCtx,applicationCtx.isMainProcess())
-                        Log.e("2222222222","onCreateSync ${instant}  ${result}")
-                        initializedSet[clazz] = result
+                        if(instant.dependencies()!=null){
+                            val dependencies = instant.dependencies()!!
+                            if(dependencies.isNotEmpty()){
+                                for(depClazz in dependencies){
+                                    if (!initialized.containsKey(depClazz)) {
+                                        doInitClazz(depClazz, initializing)
+                                    }
+                                }
+                            }
+                        }
+                        result = instant.onCreate(applicationCtx,applicationCtx.isMainProcess())
+                        InitLog.log("SyncInitialized class: $instant  and result:$result ")
+                        initialized[clazz] = result
                         initializing.remove(clazz)
                     }else{
                         GlobalScope.launch(Dispatchers.IO) {
+                            withContext(Dispatchers.IO){
+                               if(instant.dependencies()!=null){
+                                   val dependencies = instant.dependencies()!!
+                                   if(dependencies.isNotEmpty()){
+                                       for(depClazz in dependencies){
+                                           if (!initialized.containsKey(depClazz)) {
+                                               initializing.add(depClazz)
+                                               val innerInstant = newInstant(depClazz)
+                                               val out = innerInstant.onCreate(applicationCtx,applicationCtx.isMainProcess())
+                                               InitLog.log("AsyncInitialized class: $innerInstant  and result:$out ")
+                                               initialized[depClazz] = out
+                                               initializing.remove(depClazz)
+                                           }
+                                       }
+                                   }
+                                   do {
+                                       delay(10)
+                                   }while (!isAsyncInitialized(dependencies))
+                               }
+                            }
                             initializing.add(clazz)
-                            result = instant.onCreateAsync(applicationCtx,applicationCtx.isMainProcess())
-                            initializedSet[clazz] = result
+                            result = instant.onCreate(applicationCtx,applicationCtx.isMainProcess())
+                            InitLog.log("AsyncInitialized class: $instant  and result:$result ")
+                            initialized[clazz] = result
                             initializing.remove(clazz)
                         }
                     }
@@ -94,5 +115,21 @@ class Launch private constructor() {
 
         }
     }
+
+    private fun newInstant(clazz: Class<out Initializer<*>>) = clazz.getDeclaredConstructor().newInstance()
+
+
+    private fun isAsyncInitialized(clazz: List<Class<out Initializer<*>>>):Boolean{
+        var isInit = true
+        for(dep in clazz){
+            isInit = if(initialized.containsKey(dep)){
+                isInit
+            }else{
+                false
+            }
+        }
+        return isInit
+    }
+
 
 }

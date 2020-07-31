@@ -2,20 +2,11 @@ package com.show.launch
 
 import android.content.Context
 
-open class Initializer<T> {
+interface Initializer<T> {
 
+     fun onCreate(context: Context, isMainProcess:Boolean)  : T?
 
-   open fun onCreateSync(context: Context,isMainProcess:Boolean)  : T?{
-       return null
-   }
+     fun dependencies() : List<Class<out Initializer<*>>>? = null
 
-    open suspend fun onCreateAsync(context: Context,isMainProcess:Boolean) : T?{
-        return null
-    }
-
-    open fun dependencies() : ArrayList<Class<out  Initializer<*>>>?{
-        return null
-    }
-
-    open fun initializerType() = InitializerType.Sync
+     fun initializerType() = InitializerType.Sync
 }

@@ -3,6 +3,7 @@
     package="com.android.myapplication">
 
     <application
+        android:name=".MyApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -17,6 +18,9 @@
             </intent-filter>
         </activity>
 
+        <service android:name=".MyService"
+            android:process=":remote"
+            />
 
         <provider
             android:authorities="${applicationId}.AppProvider"
@@ -27,7 +31,10 @@
                 android:name="com.android.myapplication.TestInitializer"
                 android:value="@string/initializer"/>
 
+            <meta-data android:name="com.android.myapplication.TestInitializer3"
+                android:value="@string/initializer"/>
         </provider>
+
 
     </application>
 
