@@ -5,8 +5,10 @@ import android.util.Log
 
 internal object InitLog {
 
+    var enableLog = false
+
     fun log(text:String){
-        if(BuildConfig.DEBUG){
+        if(enableLog){
             Log.d("InitLog",text)
         }
     }

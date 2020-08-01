@@ -22,6 +22,10 @@ class Launch{
     private lateinit var applicationCtx: Context
     private val initialized = HashMap<Class<*>,Any?>()
 
+    fun enableLog(): Launch{
+        InitLog.enableLog = true
+        return this
+    }
 
     fun doInit(){
         try {
@@ -79,8 +83,8 @@ class Launch{
                         initialized[clazz] = result
                         initializing.remove(clazz)
                     }else{
-                        GlobalScope.launch(Dispatchers.IO) {
-                            withContext(Dispatchers.IO){
+                        GlobalScope.launch(Dispatchers.Default){
+                            withContext(Dispatchers.Default){
                                if(instant.dependencies()!=null){
                                    val dependencies = instant.dependencies()!!
                                    if(dependencies.isNotEmpty()){

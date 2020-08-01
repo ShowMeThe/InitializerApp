@@ -10,7 +10,9 @@ class MyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        Launch.attach(this).doInit()
+        Launch.attach(this)
+            .enableLog()
+            .doInit()
 
     }
 }
