@@ -1,6 +1,100 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'com.jfrog.bintray'
+apply plugin: 'maven-publish'
+apply plugin: 'org.jetbrains.dokka'
+
+
+if (project.hasProperty("kotlin")) { //Kotlin libraries
+    task sourcesJar(type: Jar) {
+        classifier = 'sources'
+        from android.sourceSets.main.java.srcDirs
+    }
+
+    task javadoc(type: Javadoc, dependsOn: dokka) {
+
+    }
+}else if (project.hasProperty("android")) { // Android libraries
+    task sourcesJar(type: Jar) {
+        classifier = 'sources'
+        from android.sourceSets.main.java.srcDirs
+    }
+
+    task javadoc(type: Javadoc) {
+        source = android.sourceSets.main.java.srcDirs
+        classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+    }
+} else { // Java libraries
+    task sourcesJar(type: Jar, dependsOn: classes) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+
+dokka {
+    outputFormat = 'html'
+    outputDirectory = "$buildDir/javadoc"
+    configuration {
+        externalDocumentationLink {
+            noAndroidSdkLink = true
+            url = new URL("file:D:/lib/InitializerApp/package-list")
+            packageListUrl = new URL("file:D:/lib/InitializerApp/package-list")
+        }
+    }
+}
+
+tasks.withType(Javadoc) {
+    options.addStringOption('Xdoclint:none', '-quiet')
+    options.addStringOption('encoding', 'UTF-8')
+    options.addStringOption('charSet', 'UTF-8')
+}
+artifacts {
+    archives javadocJar
+    archives sourcesJar
+}
+sourceSets {
+    main.java.srcDirs += 'src/main/kotlin'
+}
+
+
+
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+
+def username = properties.getProperty('username')
+def password = properties.getProperty('password')
+bintray {
+    user = username
+    key = password
+    pkg {
+        repo = 'Launch'
+        name = 'core'
+        version("1.0.0")
+        licenses = ['Apache-2.0']
+        vcsUrl = 'https://github.com/ShowMeThe/InitializerApp.git'
+    }
+    configurations = ['archives']
+    publications = ['MyPublication']
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            MyPublication(MavenPublication) {
+                from components.release
+                groupId = 'com.show.launch'
+                artifactId = 'core'
+                version = '1.0.0'
+            }
+        }
+    }
+}
 
 android {
     compileSdkVersion 29
