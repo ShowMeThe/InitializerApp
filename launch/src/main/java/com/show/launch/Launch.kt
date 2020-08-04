@@ -67,48 +67,48 @@ class Launch{
                         return
                     }
                     initializing.add(clazz)
-                    if(instant.initializerType() == InitializerType.Sync){
-                        if(instant.dependencies()!=null){
-                            val dependencies = instant.dependencies()!!
-                            if(dependencies.isNotEmpty()){
-                                for(depClazz in dependencies){
-                                    if (!initialized.containsKey(depClazz)) {
-                                        doInitClazz(depClazz, initializing)
+                    when (instant.initializerType()) {
+                        InitializerType.Sync -> {
+                            if(instant.dependencies()!=null){
+                                val dependencies = instant.dependencies()!!
+                                if(dependencies.isNotEmpty()){
+                                    for(depClazz in dependencies){
+                                        if (!initialized.containsKey(depClazz)) {
+                                            doInitClazz(depClazz, initializing)
+                                        }
                                     }
                                 }
                             }
-                        }
-                        result = instant.onCreate(applicationCtx,applicationCtx.isMainProcess())
-                        InitLog.log("SyncInitialized class: $instant  and result:$result ")
-                        initialized[clazz] = result
-                        initializing.remove(clazz)
-                    }else{
-                        GlobalScope.launch(Dispatchers.Default){
-                            withContext(Dispatchers.Default){
-                               if(instant.dependencies()!=null){
-                                   val dependencies = instant.dependencies()!!
-                                   if(dependencies.isNotEmpty()){
-                                       for(depClazz in dependencies){
-                                           if (!initialized.containsKey(depClazz)) {
-                                               initializing.add(depClazz)
-                                               val innerInstant = newInstant(depClazz)
-                                               val out = innerInstant.onCreate(applicationCtx,applicationCtx.isMainProcess())
-                                               InitLog.log("AsyncInitialized class: $innerInstant  and result:$out ")
-                                               initialized[depClazz] = out
-                                               initializing.remove(depClazz)
-                                           }
-                                       }
-                                   }
-                                   do {
-                                       delay(10)
-                                   }while (!isAsyncInitialized(dependencies))
-                               }
-                            }
-                            initializing.add(clazz)
                             result = instant.onCreate(applicationCtx,applicationCtx.isMainProcess())
-                            InitLog.log("AsyncInitialized class: $instant  and result:$result ")
+                            InitLog.log("SyncInitialized class: $instant  and result:$result ")
                             initialized[clazz] = result
                             initializing.remove(clazz)
+                        }
+                        InitializerType.Async -> {
+                            GlobalScope.launch(Dispatchers.Default){
+                                withContext(Dispatchers.Default){
+                                     doAsync(instant, initializing)
+                                }
+                                initializing.add(clazz)
+                                result = instant.onCreate(applicationCtx,applicationCtx.isMainProcess())
+                                InitLog.log("AsyncInitialized class: $instant  and result:$result ")
+                                initialized[clazz] = result
+                                initializing.remove(clazz)
+                            }
+                        }
+                        else -> {
+                            GlobalScope.launch(Dispatchers.Default){
+                                val out = withTimeoutOrNull(45*1000){
+                                    doAsync(instant, initializing)
+                                }
+                                if(out == null){
+                                    initializing.add(clazz)
+                                    result = instant.onCreate(applicationCtx,applicationCtx.isMainProcess())
+                                    InitLog.log("AsyncInitialized class: $instant  and result:$result ")
+                                    initialized[clazz] = result
+                                    initializing.remove(clazz)
+                                }
+                            }
                         }
                     }
                 }
@@ -117,6 +117,28 @@ class Launch{
             }
         }finally {
 
+        }
+    }
+
+
+    private suspend fun doAsync(instant: Initializer<*>,initializing:HashSet<Class<*>>){
+        if(instant.dependencies()!=null){
+            val dependencies = instant.dependencies()!!
+            if(dependencies.isNotEmpty()){
+                for(depClazz in dependencies){
+                    if (!initialized.containsKey(depClazz)) {
+                        initializing.add(depClazz)
+                        val innerInstant = newInstant(depClazz)
+                        val out = innerInstant.onCreate(applicationCtx,applicationCtx.isMainProcess())
+                        InitLog.log("AsyncInitialized class: $innerInstant  and result:$out ")
+                        initialized[depClazz] = out
+                        initializing.remove(depClazz)
+                    }
+                }
+            }
+            do {
+                delay(10)
+            }while (!isAsyncInitialized(dependencies))
         }
     }
 

@@ -1,5 +1,5 @@
 package com.show.launch
 
 enum class InitializerType {
-    Sync,Async
+    Sync,Async,AsyncLimit
 }
