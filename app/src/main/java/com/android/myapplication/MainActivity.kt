@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import com.show.launch.Launch
+import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 
@@ -13,7 +14,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        tv.text = TestSingle.instant.text
 
-        //startService(Intent(this,MyService::class.java))
+
     }
 }

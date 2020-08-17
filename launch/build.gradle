@@ -75,7 +75,7 @@ bintray {
     pkg {
         repo = 'Launch'
         name = 'launch-core'
-        version("0.0.3")
+        version("0.0.4")
         licenses = ['Apache-2.0']
         vcsUrl = 'https://github.com/ShowMeThe/InitializerApp.git'
     }
@@ -90,7 +90,7 @@ afterEvaluate {
                 from components.release
                 groupId = 'com.github.ShowMeThe'
                 artifactId = 'launch'
-                version = '0.0.3'
+                version = '0.0.4'
             }
         }
     }

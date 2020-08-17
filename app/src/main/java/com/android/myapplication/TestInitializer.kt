@@ -18,5 +18,5 @@ class TestInitializer : Initializer<String> {
         return list
     }
 
-    override fun initializerType(): InitializerType = InitializerType.Async
+    override fun initializerType(): InitializerType = InitializerType.Sync
 }

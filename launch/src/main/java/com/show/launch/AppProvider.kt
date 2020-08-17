@@ -30,7 +30,10 @@ class AppProvider : ContentProvider() {
     override fun getType(uri: Uri): String?  = null
 
     override fun onCreate(): Boolean {
-
+        context?.apply {
+            Launch.attach(this)
+                .doInit()
+        }
         return false
     }
 }
