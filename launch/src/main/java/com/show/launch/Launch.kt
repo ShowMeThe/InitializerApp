@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.content.pm.PackageManager.GET_META_DATA
 import android.util.Log
 import kotlinx.coroutines.*
+import java.util.ArrayList
 import java.util.concurrent.Executors
 
 
@@ -18,12 +19,17 @@ class Launch{
         }
     }
 
-    private val threadPool = Executors.newFixedThreadPool(2)
     private lateinit var applicationCtx: Context
     private val initialized = HashMap<Class<*>,Any?>()
+    private val componentClazz = HashSet<Class<out Initializer<*>>>()
 
     fun enableLog(): Launch{
         InitLog.enableLog = true
+        return this
+    }
+
+    fun addComponent(vararg clazz: Class<out Initializer<*>>): Launch{
+        componentClazz.addAll(clazz)
         return this
     }
 
@@ -33,8 +39,8 @@ class Launch{
             val providerInfo = applicationCtx.packageManager.getProviderInfo(provide,GET_META_DATA)
             val initializerName = applicationCtx.getString(R.string.initializer)
             val metadata = providerInfo.metaData
+            val set = HashSet<Class<*>>()
             if(metadata!=null){
-                val set = HashSet<Class<*>>()
                 val keys = metadata.keySet()
                 for(key in keys){
                     val dataValue = metadata.getString(key,null)
@@ -44,6 +50,11 @@ class Launch{
                             doInitClazz(clazz as Class<out Initializer<*>>,set)
                         }
                     }
+                }
+            }
+            if(componentClazz.isNotEmpty()){
+                componentClazz.forEach {
+                    doInitClazz(it,set)
                 }
             }
         }catch (e: PackageManager.NameNotFoundException){

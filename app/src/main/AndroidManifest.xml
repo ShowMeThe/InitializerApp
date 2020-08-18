@@ -27,12 +27,7 @@
             android:name="com.show.launch.AppProvider"
             android:exported="false"
             >
-            <meta-data
-                android:name="com.android.myapplication.TestInitializer"
-                android:value="@string/initializer"/>
 
-            <meta-data android:name="com.android.myapplication.TestInitializer3"
-                android:value="@string/initializer"/>
         </provider>
 
 
