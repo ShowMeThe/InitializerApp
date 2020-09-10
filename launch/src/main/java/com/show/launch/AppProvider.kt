@@ -4,6 +4,7 @@ import android.content.ContentProvider
 import android.content.ContentValues
 import android.database.Cursor
 import android.net.Uri
+import android.util.Log
 
 
 class AppProvider : ContentProvider() {
@@ -32,6 +33,7 @@ class AppProvider : ContentProvider() {
     override fun onCreate(): Boolean {
         context?.apply {
             Launch.attach(this)
+                .enableLog()
                 .doInit()
         }
         return false

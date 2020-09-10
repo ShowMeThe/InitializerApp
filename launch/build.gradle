@@ -75,7 +75,7 @@ bintray {
     pkg {
         repo = 'Launch'
         name = 'launch-core'
-        version("0.0.6")
+        version("0.0.7")
         licenses = ['Apache-2.0']
         vcsUrl = 'https://github.com/ShowMeThe/InitializerApp.git'
     }
@@ -90,7 +90,7 @@ afterEvaluate {
                 from components.release
                 groupId = 'com.github.ShowMeThe'
                 artifactId = 'launch'
-                version = '0.0.6'
+                version = '0.0.7'
             }
         }
     }
@@ -104,7 +104,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 29
         versionCode 1
-        versionName "0.0.6"
+        versionName "0.0.7"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"

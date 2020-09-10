@@ -10,7 +10,7 @@ class MyService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        Log.e("2222222222","${Launch.instant}")
+
     }
 
     override fun onBind(intent: Intent?): IBinder? {

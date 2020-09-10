@@ -13,10 +13,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        GlobalScope.launch(Dispatchers.Main){
-            delay(7000)
-            tv.text = TestSingle.instant.text
-        }
+
 
 
     }

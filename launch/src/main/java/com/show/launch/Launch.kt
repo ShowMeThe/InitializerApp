@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.content.pm.PackageManager.GET_META_DATA
 import android.util.Log
 import kotlinx.coroutines.*
+import java.lang.Exception
 import java.util.ArrayList
 import java.util.concurrent.Executors
 
@@ -13,7 +14,8 @@ import java.util.concurrent.Executors
 class Launch {
 
     companion object {
-        val instant by lazy { Launch() }
+        private val instant by lazy { Launch() }
+        fun get() = instant
         fun attach(context: Context) = instant.apply {
             applicationCtx = context
         }
@@ -21,17 +23,12 @@ class Launch {
 
     private lateinit var applicationCtx: Context
     private val initialized = HashMap<Class<*>, Any?>()
-    private val componentClazz = HashSet<Class<out Initializer<*>>>()
 
     fun enableLog(): Launch {
         InitLog.enableLog = true
         return this
     }
 
-    fun addComponent(vararg clazz: Class<out Initializer<*>>): Launch {
-        componentClazz.addAll(clazz)
-        return this
-    }
 
     fun doInit() {
         try {
@@ -39,18 +36,23 @@ class Launch {
             val providerInfo = applicationCtx.packageManager.getProviderInfo(provide, GET_META_DATA)
             val initializerName = applicationCtx.getString(R.string.initializer)
             val metadata = providerInfo.metaData
-            val set = HashSet<Class<*>>()
+            val initializing = HashSet<Class<*>>()
             if (metadata != null) {
-                GlobalScope.launch(Dispatchers.IO) {
-                    withTimeout(60 * 1000) {
-                        val keys = metadata.keySet()
-                        for (key in keys) {
-                            val dataValue = metadata.getString(key, null)
-                            if (dataValue == initializerName) {
-                                val clazz = Class.forName(key)
-                                if (Initializer::class.java.isAssignableFrom(clazz)) {
-                                    doInitClazz(clazz as Class<out Initializer<*>>, set)
+                val keys = metadata.keySet()
+                for (key in keys) {
+                    val dataValue = metadata.getString(key, null)
+                    if (dataValue == initializerName) {
+                        val clazz = Class.forName(key)
+                        if (Initializer::class.java.isAssignableFrom(clazz)) {
+                            val instant = newInstant(clazz as Class<out Initializer<*>>)
+                            if(getDeepContainsAsync(instant)){
+                                GlobalScope.launch(Dispatchers.IO) {
+                                    withTimeout(60 * 1000) {
+                                        doInitClazzAsync(clazz,initializing)
+                                    }
                                 }
+                            }else{
+                                doInitClazzSync(clazz,initializing)
                             }
                         }
                     }
@@ -63,11 +65,63 @@ class Launch {
         }
     }
 
+    private fun getDeepContainsAsync(initializer: Initializer<*>):Boolean{
+        when {
+            initializer.initializerType() == InitializerType.Async -> {
+                return true
+            }
+            initializer.dependencies() == null -> {
+                return false
+            }
+            else -> {
+                for(inside in initializer.dependencies()!!){
+                    return getDeepContainsAsync(newInstant(inside))
+                }
+            }
+        }
+        return false
+    }
+
     @Synchronized
-    private suspend fun doInitClazz(
-        clazz: Class<out Initializer<*>>,
-        initializing: HashSet<Class<*>>
-    ) {
+    private fun doInitClazzSync(clazz: Class<out Initializer<*>>, initializing: HashSet<Class<*>>) {
+        try {
+            try {
+                if (!initialized.contains(clazz)) {
+                    /**
+                     * not contain
+                     */
+                    val result: Any?
+                    val instant = newInstant(clazz)
+                    if (initializing.contains(clazz)) {
+                        return
+                    }
+                    initializing.add(clazz)
+                    if (!instant.dependencies().isNullOrEmpty()) {
+                        val dependencies = instant.dependencies()!!
+                        if (dependencies.isNotEmpty()) {
+                            for (depClazz in dependencies) {
+                                if (!initialized.containsKey(depClazz)) {
+                                    doInitClazzSync(depClazz, initializing)
+                                }
+                            }
+                        }
+                    }
+                    result = instant.onCreate(applicationCtx, applicationCtx.isMainProcess(), null)
+                    InitLog.log("Initialized class : $instant  and result:$result ")
+                    initialized[clazz] = result
+                    initializing.remove(clazz)
+                }
+            } catch (e: java.lang.Exception) {
+                e.printStackTrace()
+            }
+        } finally {
+
+        }
+    }
+
+
+    @Synchronized
+    private suspend fun doInitClazzAsync(clazz: Class<out Initializer<*>>, initializing: HashSet<Class<*>>) {
         try {
             try {
                 if (!initialized.contains(clazz)) {
@@ -86,7 +140,7 @@ class Launch {
                             if (dependencies.isNotEmpty()) {
                                 for (depClazz in dependencies) {
                                     if (!initialized.containsKey(depClazz)) {
-                                        doInitClazz(depClazz, initializing)
+                                        doInitClazzAsync(depClazz, initializing)
                                     }
                                 }
                             }
