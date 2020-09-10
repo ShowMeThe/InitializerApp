@@ -6,6 +6,6 @@ class TestSingle {
         val instant by lazy { TestSingle() }
     }
 
-    var text = ""
+    var text = "5555"
 
 }

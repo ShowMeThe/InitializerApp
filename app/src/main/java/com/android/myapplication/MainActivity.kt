@@ -6,15 +6,17 @@ import android.os.Bundle
 import android.util.Log
 import com.show.launch.Launch
 import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        tv.text = TestSingle.instant.text
+        GlobalScope.launch(Dispatchers.Main){
+            delay(7000)
+            tv.text = TestSingle.instant.text
+        }
 
 
     }
