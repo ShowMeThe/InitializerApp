@@ -14,9 +14,10 @@ class TestInitializer3 : Initializer<String> {
         isMainProcess: Boolean,
         continuation: CancellableContinuation<String>?
     ) {
+        Thread.sleep(5000)
         TestSingle.instant.text = "88888"
         continuation?.resume(TestSingle.instant.text)
     }
 
-    override fun initializerType(): InitializerType = InitializerType.Async
+    override fun initializerType(): InitializerType = InitializerType.Sync
 }

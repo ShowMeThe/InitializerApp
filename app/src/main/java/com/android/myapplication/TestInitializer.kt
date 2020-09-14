@@ -17,7 +17,7 @@ class TestInitializer : Initializer<String> {
     }
 
     override fun onCreate(context: Context, isMainProcess: Boolean, continuation: CancellableContinuation<String>?) {
-
+        continuation?.resume("")
     }
 
     override fun initializerType(): InitializerType = InitializerType.Sync

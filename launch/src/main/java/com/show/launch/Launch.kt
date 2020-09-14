@@ -23,12 +23,17 @@ class Launch {
 
     private lateinit var applicationCtx: Context
     private val initialized = HashMap<Class<*>, Any?>()
+    private val components = HashSet<Class<out Initializer<*>>>()
 
     fun enableLog(): Launch {
         InitLog.enableLog = true
         return this
     }
 
+    fun addComponents(clazz: Class<out Initializer<*>>): Launch{
+        components.add(clazz)
+        return this
+    }
 
     fun doInit() {
         try {
@@ -37,23 +42,31 @@ class Launch {
             val initializerName = applicationCtx.getString(R.string.initializer)
             val metadata = providerInfo.metaData
             val initializing = HashSet<Class<*>>()
+            val preInitializeList = HashSet<Class<out Initializer<*>>>()
             if (metadata != null) {
                 val keys = metadata.keySet()
                 for (key in keys) {
                     val dataValue = metadata.getString(key, null)
                     if (dataValue == initializerName) {
                         val clazz = Class.forName(key)
-                        if (Initializer::class.java.isAssignableFrom(clazz)) {
-                            val instant = newInstant(clazz as Class<out Initializer<*>>)
-                            if(getDeepContainsAsync(instant)){
-                                GlobalScope.launch(Dispatchers.IO) {
-                                    withTimeout(60 * 1000) {
-                                        doInitClazzAsync(clazz,initializing)
-                                    }
+                        preInitializeList.add(clazz as Class<out Initializer<*>>)
+                    }
+                }
+                if(components.isNotEmpty()){
+                    preInitializeList.addAll(components)
+                }
+
+                for(clazz in preInitializeList){
+                    if (Initializer::class.java.isAssignableFrom(clazz)) {
+                        val instant = newInstant(clazz)
+                        if(getDeepContainsAsync(instant)){
+                            GlobalScope.launch(Dispatchers.IO) {
+                                withTimeout<Unit>(60 * 1000) {
+                                    doInitClazzAsync(clazz,initializing)
                                 }
-                            }else{
-                                doInitClazzSync(clazz,initializing)
                             }
+                        }else{
+                            doInitClazzSync(clazz,initializing)
                         }
                     }
                 }
@@ -85,84 +98,76 @@ class Launch {
     @Synchronized
     private fun doInitClazzSync(clazz: Class<out Initializer<*>>, initializing: HashSet<Class<*>>) {
         try {
-            try {
-                if (!initialized.contains(clazz)) {
-                    /**
-                     * not contain
-                     */
-                    val result: Any?
-                    val instant = newInstant(clazz)
-                    if (initializing.contains(clazz)) {
-                        return
+            if (!initialized.contains(clazz)) {
+                /**
+                 * not contain
+                 */
+                val result: Any?
+                val instant = newInstant(clazz)
+                if (initializing.contains(clazz)) {
+                    return
+                }
+                initializing.add(clazz)
+                if (!instant.dependencies().isNullOrEmpty()) {
+                    val dependencies = instant.dependencies()!!
+                    if (dependencies.isNotEmpty()) {
+                        for (depClazz in dependencies) {
+                            if (!initialized.containsKey(depClazz)) {
+                                doInitClazzSync(depClazz, initializing)
+                            }
+                        }
                     }
+                }
+                result = instant.onCreate(applicationCtx, applicationCtx.isMainProcess(), null)
+                InitLog.log("Initialized class : $instant  and result:$result ")
+                initialized[clazz] = result
+                initializing.remove(clazz)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+
+    @Synchronized
+    private suspend fun doInitClazzAsync(clazz: Class<out Initializer<*>>, initializing: HashSet<Class<*>>){
+        try {
+            if (!initialized.contains(clazz)) {
+                /**
+                 * not contain
+                 */
+                var result: Any?
+                val instant = newInstant(clazz)
+                if (initializing.contains(clazz)) {
+                    return
+                }
+                withContext(Dispatchers.Unconfined) {
                     initializing.add(clazz)
                     if (!instant.dependencies().isNullOrEmpty()) {
                         val dependencies = instant.dependencies()!!
                         if (dependencies.isNotEmpty()) {
                             for (depClazz in dependencies) {
                                 if (!initialized.containsKey(depClazz)) {
-                                    doInitClazzSync(depClazz, initializing)
+                                    doInitClazzAsync(depClazz, initializing)
                                 }
                             }
                         }
                     }
-                    result = instant.onCreate(applicationCtx, applicationCtx.isMainProcess(), null)
+                    result = suspendCancellableCoroutine { continuation ->
+                        instant.onCreate(
+                            applicationCtx,
+                            applicationCtx.isMainProcess(),
+                            continuation
+                        )
+                    }
                     InitLog.log("Initialized class : $instant  and result:$result ")
                     initialized[clazz] = result
                     initializing.remove(clazz)
                 }
-            } catch (e: java.lang.Exception) {
-                e.printStackTrace()
+
             }
-        } finally {
-
-        }
-    }
-
-
-    @Synchronized
-    private suspend fun doInitClazzAsync(clazz: Class<out Initializer<*>>, initializing: HashSet<Class<*>>) {
-        try {
-            try {
-                if (!initialized.contains(clazz)) {
-                    /**
-                     * not contain
-                     */
-                    var result: Any?
-                    val instant = newInstant(clazz)
-                    if (initializing.contains(clazz)) {
-                        return
-                    }
-                    withContext(Dispatchers.Unconfined) {
-                        initializing.add(clazz)
-                        if (!instant.dependencies().isNullOrEmpty()) {
-                            val dependencies = instant.dependencies()!!
-                            if (dependencies.isNotEmpty()) {
-                                for (depClazz in dependencies) {
-                                    if (!initialized.containsKey(depClazz)) {
-                                        doInitClazzAsync(depClazz, initializing)
-                                    }
-                                }
-                            }
-                        }
-                        result = suspendCancellableCoroutine { continuation ->
-                            instant.onCreate(
-                                applicationCtx,
-                                applicationCtx.isMainProcess(),
-                                continuation
-                            )
-                        }
-                        InitLog.log("Initialized class : $instant  and result:$result ")
-                        initialized[clazz] = result
-                        initializing.remove(clazz)
-                    }
-
-                }
-            } catch (e: java.lang.Exception) {
-                e.printStackTrace()
-            }
-        } finally {
-
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 

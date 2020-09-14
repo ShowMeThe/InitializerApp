@@ -10,13 +10,13 @@ import kotlin.coroutines.resume
 class TestInitializer2 : Initializer<String> {
 
     override fun dependencies(): List<Class<out Initializer<*>>>?{
-        val list = ArrayList<Class<out Initializer<*>>>()
-        list.add(TestInitializer3::class.java)
-        return list
+        return ArrayList<Class<out Initializer<*>>>().apply {
+            add(TestInitializer3::class.java)
+        }
     }
 
     override fun onCreate(context: Context, isMainProcess: Boolean, continuation: CancellableContinuation<String>?) {
-
+        Thread.sleep(5000)
         TestSingle.instant.text = "${TestSingle.instant.text}55555"
         continuation?.resume(TestSingle.instant.text)
     }
