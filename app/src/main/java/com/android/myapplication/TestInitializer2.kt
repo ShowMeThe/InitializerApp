@@ -21,6 +21,6 @@ class TestInitializer2 : Initializer<String> {
         continuation?.resume(TestSingle.instant.text)
     }
 
-    override fun initializerType(): InitializerType = InitializerType.Async
+    override fun initializerType(): InitializerType = InitializerType.Sync
 
 }

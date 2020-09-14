@@ -30,6 +30,9 @@
             <meta-data android:name="com.android.myapplication.TestInitializer"
                 android:value="@string/initializer"
                 />
+            <meta-data android:name="com.android.myapplication.TestInitializer4"
+                android:value="@string/initializer"
+                />
         </provider>
 
 
