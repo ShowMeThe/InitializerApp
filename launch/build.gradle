@@ -43,8 +43,8 @@ dokka {
     configuration {
         externalDocumentationLink {
             noAndroidSdkLink = true
-            url = new URL("file:D:/lib/InitializerApp/package-list")
-            packageListUrl = new URL("file:D:/lib/InitializerApp/package-list")
+            url = new URL("https://github.com/ShowMeThe/InitializerApp/blob/master/package-list")
+            packageListUrl = new URL("https://github.com/ShowMeThe/InitializerApp/blob/master/package-list")
         }
     }
 }
@@ -75,7 +75,7 @@ bintray {
     pkg {
         repo = 'Launch'
         name = 'launch-core'
-        version("1.0.0")
+        version("1.0.1")
         licenses = ['Apache-2.0']
         vcsUrl = 'https://github.com/ShowMeThe/InitializerApp.git'
     }
@@ -90,7 +90,7 @@ afterEvaluate {
                 from components.release
                 groupId = 'com.github.ShowMeThe'
                 artifactId = 'launch'
-                version = '1.0.0'
+                version = '1.0.1'
             }
         }
     }
@@ -104,7 +104,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 29
         versionCode 1
-        versionName "1.0.0"
+        versionName "1.0.1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
