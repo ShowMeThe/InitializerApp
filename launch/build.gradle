@@ -75,7 +75,7 @@ bintray {
     pkg {
         repo = 'Launch'
         name = 'launch-core'
-        version("0.0.8")
+        version("1.0.0")
         licenses = ['Apache-2.0']
         vcsUrl = 'https://github.com/ShowMeThe/InitializerApp.git'
     }
@@ -90,7 +90,7 @@ afterEvaluate {
                 from components.release
                 groupId = 'com.github.ShowMeThe'
                 artifactId = 'launch'
-                version = '0.0.8'
+                version = '1.0.0'
             }
         }
     }
@@ -104,7 +104,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 29
         versionCode 1
-        versionName "0.0.8"
+        versionName "1.0.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
@@ -121,8 +121,8 @@ android {
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
     compileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    compileOnly "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.8"
-    compileOnly "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.8"
+    compileOnly "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2"
+    compileOnly "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.4.2"
 
 }
 

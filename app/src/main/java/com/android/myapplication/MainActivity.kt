@@ -14,6 +14,8 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
 
+        startService(Intent(this,MyService::class.java))
+
 
 
     }
