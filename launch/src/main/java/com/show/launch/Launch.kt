@@ -1,5 +1,6 @@
 package com.show.launch
 
+import android.app.Application
 import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
@@ -52,24 +53,11 @@ class Launch {
                         preInitializeList.add(clazz as Class<out Initializer<*>>)
                     }
                 }
+
                 if(components.isNotEmpty()){
                     preInitializeList.addAll(components)
                 }
-
-                for(clazz in preInitializeList){
-                    if (Initializer::class.java.isAssignableFrom(clazz)) {
-                        val instant = newInstant(clazz)
-                        if(getDeepContainsAsync(instant)){
-                            GlobalScope.launch(Dispatchers.IO) {
-                                withTimeout<Unit>(60 * 1000) {
-                                    doInitClazzAsync(clazz,initializing)
-                                }
-                            }
-                        }else{
-                            doInitClazzSync(clazz,initializing)
-                        }
-                    }
-                }
+                doInitPreInitializeList(preInitializeList, initializing)
             }
         } catch (e: PackageManager.NameNotFoundException) {
             e.printStackTrace()
@@ -77,6 +65,24 @@ class Launch {
             e.printStackTrace()
         }
     }
+
+    private fun doInitPreInitializeList(preInitializeList:HashSet<Class<out Initializer<*>>>,initializing:HashSet<Class<*>>){
+        for(clazz in preInitializeList){
+            if (Initializer::class.java.isAssignableFrom(clazz)) {
+                val instant = newInstant(clazz)
+                if(getDeepContainsAsync(instant)){
+                    GlobalScope.launch(Dispatchers.IO) {
+                        withTimeout<Unit>(60 * 1000) {
+                            doInitClazzAsync(clazz,initializing)
+                        }
+                    }
+                }else{
+                    doInitClazzSync(clazz,initializing)
+                }
+            }
+        }
+    }
+
 
     private fun getDeepContainsAsync(initializer: Initializer<*>):Boolean{
         when {

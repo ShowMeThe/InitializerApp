@@ -31,6 +31,7 @@ class AppProvider : ContentProvider() {
     override fun getType(uri: Uri): String?  = null
 
     override fun onCreate(): Boolean {
+        Log.e("InitLog","onCreate")
         context?.apply {
             Launch.attach(this)
                 .enableLog()
