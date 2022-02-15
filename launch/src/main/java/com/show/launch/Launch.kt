@@ -141,7 +141,7 @@ class Launch {
                 if (initializing.contains(clazz)) {
                     return
                 }
-                withContext(Dispatchers.Unconfined) {
+                withContext(Dispatchers.IO) {
                     initializing.add(clazz)
                     if (!instant.dependencies().isNullOrEmpty()) {
                         val dependencies = instant.dependencies()!!
